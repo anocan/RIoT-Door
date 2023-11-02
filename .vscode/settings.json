@@ -1,0 +1,16 @@
+{
+  "files.associations": {
+    "*.jsx": "javascriptreact",
+    "array": "cpp",
+    "memory": "cpp",
+    "ranges": "cpp",
+    "functional": "cpp",
+    "tuple": "cpp",
+    "utility": "cpp",
+    "variant": "cpp",
+    "optional": "cpp",
+    "system_error": "cpp",
+    "string": "cpp",
+    "string_view": "cpp"
+  }
+}

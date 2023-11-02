@@ -1,0 +1,92 @@
+#include <ESP8266WiFi.h>
+
+#include <SPI.h>
+#include <MFRC522.h>
+
+#include <Firebase_ESP_Client.h>
+
+// WiFi
+const char* ssid = "Robotics and Automation Society";
+const char* password = "IEEE-RAS/LAB";
+
+// RFID
+const uint8_t RST_PIN = D2;
+const uint8_t SS_PIN = D4;
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+
+// Firebase
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+#define API_KEY "AIzaSyDDptLzu8BVCRNB2Gg6ZI_eclNrscaZWsY"
+#define FIREBASE_PROJECT_ID "riot-4n4n1f"
+#define USER_EMAIL "anocan91@gmail.com"
+#define USER_PASSWORD "Anocan3*"
+
+void firestoreDataUpdate(double temp, double humi);
+
+void setup(){
+    Serial.begin(9600);
+    delay(1000);
+    
+    WiFi.mode(WIFI_STA); //Optional
+    WiFi.begin(ssid, password);
+    Serial.println("\nConnecting");
+
+    while(WiFi.status() != WL_CONNECTED){
+        Serial.print(".");
+        delay(100);
+    }
+
+    Serial.println("\nConnected to the WiFi network");
+    Serial.print("Local ESP32 IP: ");
+    Serial.println(WiFi.localIP());
+
+    config.api_key = API_KEY;
+    auth.user.email = USER_EMAIL;
+    auth.user.password = USER_PASSWORD;
+
+    Firebase.begin(&config, &auth);
+
+    SPI.begin();
+    mfrc522.PCD_Init();
+    Serial.println("RFID reading UID");
+    
+}
+
+void loop(){
+      if (mfrc522.PICC_IsNewCardPresent()) {
+    if (mfrc522.PICC_ReadCardSerial()) {
+      Serial.print("Tag UID: ");
+      for (byte i=0; i<mfrc522.uid.size; i++) {
+        Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(mfrc522.uid.uidByte[i], HEX);
+
+      }
+      Serial.println();
+      mfrc522.PICC_HaltA();
+
+        //
+      firestoreDataUpdate(12,32);
+    }
+  }
+}
+
+void firestoreDataUpdate(double temp, double humi) {
+    if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
+        String documentPath = "House/Room_1";
+
+        FirebaseJson content;
+
+        content.set("fields/temperature/doubleValue", String(temp).c_str());
+        content.set("fields/humidity/doubleValue", String(humi).c_str());
+
+        if(Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw())) {
+            Serial.printf("OK\n%s\n\n", fbdo.payload().c_str());
+            return;
+        } else {
+            Serial.println(fbdo.errorReason());
+        }
+    }
+}
