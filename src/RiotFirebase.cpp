@@ -1,5 +1,6 @@
 #include "RiotFirebase.h"
 #include "credentials.h"
+#include <vector>
 
 FirebaseData fbdo;
 FirebaseAuth auth;
@@ -13,6 +14,34 @@ void initFirebase() {
     auth.user.password = USER_PASSWORD;
     Firebase.begin(&config, &auth);
     digitalWrite(FIREBASE_PIN, LOW);
+}
+
+const char* firestoreGetCardData(String documentPath, String elementName, String elementType) {
+    // Connect to Firebase
+    if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), "")) {
+        String activeTagUIDS = "";
+        const char bookmark = 'X';
+
+        FirebaseJson payload;
+        payload.setJsonData(fbdo.payload().c_str());
+        //Serial.println(fbdo.payload());
+
+        FirebaseJsonData jsonData;
+        int i =0;
+        while (payload.get(jsonData,"fields/" + elementName + "/" + elementType + "/values/" + "[" + i + "]" + "/stringValue", true)) {
+            //Serial.println(jsonData.stringValue);
+            activeTagUIDS += jsonData.stringValue + bookmark;
+            i++;
+        }
+        char* activeTagUIDs = new char[activeTagUIDS.length() + 1];
+        strcpy(activeTagUIDs, activeTagUIDS.c_str());
+        //Serial.println(activeTagUIDs);
+        return activeTagUIDs;
+    } else {
+        Serial.println("Error reading Firestore document");
+        Serial.println(fbdo.errorReason());
+        return nullptr;
+    }
 }
 
 String firestoreGetData(String documentPath, String elementName, String elementType) {
@@ -41,9 +70,16 @@ void firestoreDataUpdate(String documentPath, String elementName, String element
         switch (mode) {
             case increment_by_one:
                 int currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
-                Serial.println(currentValue);
+                //Serial.println(currentValue);
                 currentValue++;
                 content.set("fields/" + elementName + "/" + elementType, String(currentValue));
+                break;
+            case decrease_by_one:
+                int currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
+                //Serial.println(currentValue);
+                currentValue--;
+                content.set("fields/" + elementName + "/" + elementType, String(currentValue));
+                break;           
         }
 
             if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "labPeople")){

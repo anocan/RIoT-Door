@@ -8,6 +8,7 @@ const char* password = WIFI_PASSWORD;
 void initWiFi() {
     pinMode(NETWORK_PIN, OUTPUT);
     digitalWrite(NETWORK_PIN,HIGH);
+    WiFi.disconnect();
     WiFi.mode(WIFI_STA); // Optional
     WiFi.begin(ssid, password);
     Serial.println("\nConnecting");
