@@ -1,19 +1,31 @@
 #include "RiotFirebase.h"
 #include "credentials.h"
-#include <vector>
+#include "RiotSystem.h"
 
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-void initFirebase() {
+int initFirebase() {
     pinMode(FIREBASE_PIN, OUTPUT);
     digitalWrite(FIREBASE_PIN, HIGH);
     config.api_key = API_KEY;
     auth.user.email = USER_EMAIL;
     auth.user.password = USER_PASSWORD;
     Firebase.begin(&config, &auth);
-    digitalWrite(FIREBASE_PIN, LOW);
+    while (!Firebase.ready()) {
+        if (SYSTEM == SYS_NORMAL) {
+            Serial.print("-");
+            delay(100);
+        } else if (SYSTEM == SYS_BACKUP) {
+            return -1;
+        }
+    }
+    if (SYSTEM == SYS_NORMAL) {
+        digitalWrite(FIREBASE_PIN, LOW);
+    }
+
+    return 1;
 }
 
 const char* firestoreGetCardData(String documentPath, String elementName, String elementType) {
@@ -66,16 +78,17 @@ String firestoreGetData(String documentPath, String elementName, String elementT
 void firestoreDataUpdate(String documentPath, String elementName, String elementType, UpdateModes mode) {
     if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
         FirebaseJson content;
+        int currentValue;
   
         switch (mode) {
             case increment_by_one:
-                int currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
+                currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
                 //Serial.println(currentValue);
                 currentValue++;
                 content.set("fields/" + elementName + "/" + elementType, String(currentValue));
                 break;
             case decrease_by_one:
-                int currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
+                currentValue = firestoreGetData(documentPath, elementName, elementType).toInt();
                 //Serial.println(currentValue);
                 currentValue--;
                 content.set("fields/" + elementName + "/" + elementType, String(currentValue));

@@ -1,11 +1,12 @@
 #include "Network.h"
 #include "credentials.h"
+#include "RiotSystem.h"
 #include <ESP8266WiFi.h>
 
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
-void initWiFi() {
+int initWiFi() {
     pinMode(NETWORK_PIN, OUTPUT);
     digitalWrite(NETWORK_PIN,HIGH);
     WiFi.disconnect();
@@ -14,12 +15,19 @@ void initWiFi() {
     Serial.println("\nConnecting");
 
     while (WiFi.status() != WL_CONNECTED) {
-        Serial.print(".");
-        delay(100);
+        if (SYSTEM == SYS_NORMAL) {
+            Serial.print(".");
+            delay(100);
+        } else if (SYSTEM == SYS_BACKUP) {
+            return -1;
+        }
+
     }
     
     Serial.println("\nConnected to the WiFi network");
     Serial.print("Local ESP32 IP: ");
     Serial.println(WiFi.localIP());
     digitalWrite(NETWORK_PIN,LOW);
+
+    return 1;
 }

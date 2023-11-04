@@ -16,7 +16,7 @@ enum UpdateModes {
     decrease_by_one,
 };
 
-void initFirebase();
+int initFirebase();
 const char* firestoreGetCardData(String documentPath, String elementName, String elementType);
 String firestoreGetData(String documentPath, String elementName, String elementType);
 void firestoreDataUpdate(String documentPath, String elementName, String elementType, UpdateModes mode);

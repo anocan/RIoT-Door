@@ -1,5 +1,6 @@
 #include "RFID.h"
 #include "RiotFirebase.h"
+#include "RiotSystem.h"
 #include <SPI.h>
 #include <MFRC522.h>
 
@@ -7,12 +8,14 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 const char* knownTagUIDs[] = {
-    "e3f76c19", // Replace with the actual tag UID
+    "ec2ff537",
+    "e3f76c19",
 };
 
 const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
 const char* correspondingIDs[] = {
-    "ID1",
+    "MASTER KEY",
+    "ID1"
 };
 
 bool compareTagUID(String tagUID,const char* data) {
@@ -39,10 +42,15 @@ bool compareTagUID(String tagUID,const char* data) {
 };
 
 void initRFID() {
-    pinMode(READY_PIN, OUTPUT);
+    if (SYSTEM == SYS_NORMAL) {
+        pinMode(READY_PIN, OUTPUT);
+    }
     SPI.begin();
     mfrc522.PCD_Init();
-    digitalWrite(READY_PIN, HIGH);
+    if (SYSTEM == SYS_NORMAL) {
+        digitalWrite(READY_PIN, HIGH);
+    }
+
 }   
 
 void readRFID() {
@@ -58,27 +66,33 @@ void readRFID() {
             Serial.println();
 
         //Serial.println("TAGUID:: " + tagUID);
-        const char* serializedCardData = firestoreGetCardData("riotCards/active-cards", "activeCards", "arrayValue");
-        if (compareTagUID(tagUID, serializedCardData )) {
-            firestoreDataUpdate("labData/lab-people", "labPeople", "stringValue",increment_by_one);
-            Serial.println("FIREBASE CARD CORRECT!");
-        } else {
-            Serial.println("FIREBASE CARD WRONG!");
-        }
-        delete[] serializedCardData;
-/*
-        for (int i = 0; i < numKnownTags; i++) {
-            if (tagUID == knownTagUIDs[i]) {
-                // Match found
-                Serial.println("Tag matches ID: " + String(correspondingIDs[i]));
-                Serial.println(firestoreGetArray("riotCards/active-cards", "activeCards", "arrayValue"));
-                //firestoreDataUpdate("labData/lab-people", "labPeople", "stringValue",increment_by_one);
-                break; // Exit the loop when a match is found
+        if (SYSTEM == SYS_NORMAL) {
+            const char* serializedCardData = firestoreGetCardData("riotCards/active-cards", "activeCards", "arrayValue");
+            if (compareTagUID(tagUID, serializedCardData )) {
+                firestoreDataUpdate("labData/lab-people", "labPeople", "stringValue",increment_by_one);
+                Serial.println("FIREBASE CARD CORRECT!");
+            } else {
+                Serial.println("FIREBASE CARD WRONG!");
             }
+            delete[] serializedCardData;
+
+        } else if (SYSTEM == SYS_BACKUP) {
+    
+            for (int i = 0; i < numKnownTags; i++) {
+                if (tagUID == knownTagUIDs[i]) {
+                    // Match found
+
+                    /// UNLOCK THE DOOR
+                   Serial.println("CARD READ VIA BACKUP");
+                    break; // Exit the loop when a match is found
+                }
+            }
+    
         }
-*/
+
             mfrc522.PICC_HaltA();
 
         }
     }
 }
+

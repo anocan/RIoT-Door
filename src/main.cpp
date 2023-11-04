@@ -1,10 +1,11 @@
+#include "RiotSystem.h"
 #include "Network.h"
 #include "RiotFirebase.h"
 #include "RFID.h"
 
 void setup() {
+    attachInterrupt(digitalPinToInterrupt(0), backUpRead, RISING);
     Serial.begin(9600);
-    delay(1000);
     initWiFi();
     initFirebase();
     initRFID();
