@@ -19,6 +19,7 @@ int initWiFi() {
             Serial.print(".");
             delay(100);
         } else if (SYSTEM == SYS_BACKUP) {
+            Serial.print("!");
             return -1;
         }
 

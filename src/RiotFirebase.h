@@ -14,11 +14,16 @@ extern const u_int8_t FIREBASE_PIN;
 enum UpdateModes {
     increment_by_one,
     decrease_by_one,
+    update_inOrOutToLabData,
 };
 
-int initFirebase();
+
 const char* firestoreGetCardData(String documentPath, String elementName, String elementType);
-String firestoreGetData(String documentPath, String elementName, String elementType);
-void firestoreDataUpdate(String documentPath, String elementName, String elementType, UpdateModes mode);
+
+int initFirebase();
+FirebaseJson firestoreGetJson(String documentPath);
+void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String updateWhere, String updateValue);
+String firestoreCompare(String documentPath, String compareField, String compareValue, String iteration, bool count);
+String getDataFromJsonObject(FirebaseJson jsonObject, String fieldPath);
 
 #endif

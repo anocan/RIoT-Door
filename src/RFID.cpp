@@ -18,7 +18,7 @@ const char* correspondingIDs[] = {
     "ID1"
 };
 
-bool compareTagUID(String tagUID,const char* data) {
+String compareTagUID(String tagUID,const char* data) {
     const char bookmark = 'X';
     String temp = "";
     for(size_t i=0; i < strlen(data); i++) {
@@ -29,7 +29,7 @@ bool compareTagUID(String tagUID,const char* data) {
             if (tagUID == temp) {
                 //Serial.println("CORRECT:");
                 //Serial.println(temp);
-                return true;
+                return tagUID;
             } else {
                 //Serial.println("WRONG:");
                 //Serial.println(temp);
@@ -38,7 +38,7 @@ bool compareTagUID(String tagUID,const char* data) {
             }
         }
     }
-    return false;
+    return "null";
 };
 
 void initRFID() {
@@ -67,9 +67,56 @@ void readRFID() {
 
         //Serial.println("TAGUID:: " + tagUID);
         if (SYSTEM == SYS_NORMAL) {
-            const char* serializedCardData = firestoreGetCardData("riotCards/active-cards", "activeCards", "arrayValue");
-            if (compareTagUID(tagUID, serializedCardData )) {
-                firestoreDataUpdate("labData/lab-people", "labPeople", "stringValue",increment_by_one);
+            const char* serializedCardData = firestoreGetCardData("riotCards/riot-cards", "riotCardList", "arrayValue");
+            String riotCardID = compareTagUID(tagUID, serializedCardData);
+            if (riotCardID != "null") {
+
+                FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
+                FirebaseJson jsonObjectLabData = firestoreGetJson("labData/lab-data");
+
+                String riotCardListIndex = firestoreCompare(
+                "riotCards/riot-cards",
+                "fields/riotCardList/arrayValue/values",
+                riotCardID,
+                "mapValue/fields/riotCardID/stringValue",
+                false
+                );
+
+                String userID = getDataFromJsonObject(
+                jsonObjectRiotCard,
+                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/id/stringValue"
+                );
+                FirebaseJson jsonObjectUser = firestoreGetJson("users/" + userID); 
+
+                firestoreUpdateData(
+                jsonObjectUser,
+                "users/" + userID,  
+                "fields/riotCard/mapValue/fields/inOrOut/stringValue",
+                "in"
+                );
+
+                firestoreUpdateData(
+                jsonObjectRiotCard, 
+                "riotCards/riot-cards", 
+                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/inOrOut/stringValue",
+                "in"
+                );
+
+                String noPeopleInTheLab = firestoreCompare(
+                "riotCards/riot-cards",
+                "fields/riotCardList/arrayValue/values",
+                "in",
+                "mapValue/fields/inOrOut/stringValue",
+                true
+                );
+
+                firestoreUpdateData(
+                jsonObjectLabData, 
+                "labData/lab-data", 
+                "fields/labPeople/stringValue",
+                noPeopleInTheLab
+                );
+                
                 Serial.println("FIREBASE CARD CORRECT!");
             } else {
                 Serial.println("FIREBASE CARD WRONG!");
@@ -77,7 +124,6 @@ void readRFID() {
             delete[] serializedCardData;
 
         } else if (SYSTEM == SYS_BACKUP) {
-    
             for (int i = 0; i < numKnownTags; i++) {
                 if (tagUID == knownTagUIDs[i]) {
                     // Match found

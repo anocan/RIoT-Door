@@ -22,13 +22,13 @@ void IRAM_ATTR backUpRead() {
     if(startTimer && (now - lastTrigger > (INTERRUPT_SECONDS*1000000))) {
     pinMode(NETWORK_PIN, OUTPUT);
     pinMode(FIREBASE_PIN, OUTPUT); 
-    pinMode(READY_PIN, OUTPUT);      
+    pinMode(READY_PIN, OUTPUT);   
     Serial.println("BACKUP RFID READ ACTIVATED");
     lastTrigger = micros();
     startTimer = false;
     SYSTEM = SYS_BACKUP;
     digitalWrite(NETWORK_PIN,HIGH);
     digitalWrite(FIREBASE_PIN,HIGH);
-    digitalWrite(READY_PIN,HIGH);   
+    digitalWrite(READY_PIN,HIGH);
   }
 }
