@@ -10,16 +10,18 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 const char* knownTagUIDs[] = {
     "ec2ff537",
     "e3f76c19",
+    "4c60a25f"
 };
 
 const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
 const char* correspondingIDs[] = {
     "MASTER KEY",
-    "ID1"
+    "ID1",
+    "ZGwWrS4bjrZPXa8V2ddsES2Api33"
 };
 
 String compareTagUID(String tagUID,const char* data) {
-    const char bookmark = 'X';
+    const char bookmark = '|';
     String temp = "";
     for(size_t i=0; i < strlen(data); i++) {
         //Serial.println(data[i]);
@@ -65,59 +67,19 @@ void readRFID() {
             }
             Serial.println();
 
-        //Serial.println("TAGUID:: " + tagUID);
         if (SYSTEM == SYS_NORMAL) {
-            const char* serializedCardData = firestoreGetCardData("riotCards/riot-cards", "riotCardList", "arrayValue");
+            FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
+
+            const char* serializedCardData = getActiveRiotCardIDs(jsonObjectRiotCard);
             String riotCardID = compareTagUID(tagUID, serializedCardData);
             if (riotCardID != "null") {
+                releaseDoor();
+                uploadAllFirestoreTasks(jsonObjectRiotCard, riotCardID); // Takes significant time
+                //changeRiotCardStatus();
 
-                FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
-                FirebaseJson jsonObjectLabData = firestoreGetJson("labData/lab-data");
 
-                String riotCardListIndex = firestoreCompare(
-                "riotCards/riot-cards",
-                "fields/riotCardList/arrayValue/values",
-                riotCardID,
-                "mapValue/fields/riotCardID/stringValue",
-                false
-                );
-
-                String userID = getDataFromJsonObject(
-                jsonObjectRiotCard,
-                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/id/stringValue"
-                );
-                FirebaseJson jsonObjectUser = firestoreGetJson("users/" + userID); 
-
-                firestoreUpdateData(
-                jsonObjectUser,
-                "users/" + userID,  
-                "fields/riotCard/mapValue/fields/inOrOut/stringValue",
-                "in"
-                );
-
-                firestoreUpdateData(
-                jsonObjectRiotCard, 
-                "riotCards/riot-cards", 
-                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/inOrOut/stringValue",
-                "in"
-                );
-
-                String noPeopleInTheLab = firestoreCompare(
-                "riotCards/riot-cards",
-                "fields/riotCardList/arrayValue/values",
-                "in",
-                "mapValue/fields/inOrOut/stringValue",
-                true
-                );
-
-                firestoreUpdateData(
-                jsonObjectLabData, 
-                "labData/lab-data", 
-                "fields/labPeople/stringValue",
-                noPeopleInTheLab
-                );
-                
-                Serial.println("FIREBASE CARD CORRECT!");
+     
+                //Serial.println("FIREBASE CARD CORRECT!");
             } else {
                 Serial.println("FIREBASE CARD WRONG!");
             }

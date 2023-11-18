@@ -17,6 +17,20 @@ extern boolean startTimer;
 extern long now;
 extern long lastTrigger;
 
+extern bool taskExecuted;
+
+extern const char* ntpServer;
+extern const long  gmtOffset_sec; // +3 UTC in seconds
+extern const int   daylightOffset_sec;
+
+extern const int maintenanceLowerHour;
+extern const int maintenanceLowerMinute;
+
+extern const int maintenanceUpperHour;
+extern const int maintenanceUpperMinute;
+
 void backUpRead();
+void releaseDoor();
+void systemMaintenance();
 
 #endif

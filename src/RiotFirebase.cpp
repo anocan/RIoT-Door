@@ -34,51 +34,46 @@ int initFirebase() {
     return 1;
 }
 
-const char* firestoreGetCardData(String documentPath, String elementName, String elementType) {
-    // Connect to Firebase
-    if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), "")) {
-        String activeTagUIDS = "";
-        const char bookmark = 'X';
+    /**
+     * Get active RIoT card ids.
+     *
+     * @param jsonObject Json object to get the active RIoT card id
+     * @return nothing
+     *
+     */
+const char* getActiveRiotCardIDs(FirebaseJson jsonObject) {
+    String activeTagUIDS = "";
+    const char bookmark = '|';
 
-        FirebaseJson payload;
-        payload.setJsonData(fbdo.payload().c_str());
-        //Serial.println(fbdo.payload());
-
-        FirebaseJsonData jsonData;
-        FirebaseJsonData jsonCardStatus;
-        int i =0;
-        while (payload.get(jsonData,
-        "fields/" + elementName + "/" + elementType + "/values/" + "[" + i + "]" + "/mapValue/fields/riotCardID/stringValue", 
-        true) &&
-        payload.get(jsonCardStatus,
-        "fields/" + elementName + "/" + elementType + "/values/" + "[" + i + "]" + "/mapValue/fields/riotCardStatus/stringValue", 
-        true) 
-        ) {
-            //Serial.println(jsonData.stringValue);
-            //Serial.println(jsonCardStatus.stringValue);
-
-            if (jsonCardStatus.stringValue == "active") {
-                //Serial.println(jsonData.stringValue);
-                activeTagUIDS += jsonData.stringValue + bookmark;
-            } else if (jsonCardStatus.stringValue == "disabled") {
-                //Serial.println("DISABLED CARD!");
-            } else if (jsonCardStatus.stringValue == "inactive") {
-                //Serial.println("INACTIVE CARD!");
-            } else {
-                //Serial.println("UNKNOWN STATUS!");
-            }
-            i++;
+    FirebaseJsonData iterator;
+        
+    int i =0;
+    while(jsonObject.get(iterator,
+    "fields/riotCardList/arrayValue/values/[" + String(i) + "]/mapValue/fields/id/stringValue", 
+    true)){
+        String riotCardStatusBool = firestoreCompare(
+        jsonObject,
+        "fields/riotCardList/arrayValue/values/[" + String(i) + "]/mapValue/fields/riotCardStatus/stringValue",
+        "active",
+        "none",
+        false
+        );
+        //Serial.println(riotCardStatusBool);
+        if (riotCardStatusBool == "true") {
+            String riotCardID = getDataFromJsonObject(
+            jsonObject, 
+            "fields/riotCardList/arrayValue/values/[" + String(i)  + "]/mapValue/fields/riotCardID/stringValue"
+            );
+            activeTagUIDS += riotCardID + bookmark;
         }
-        char* activeTagUIDs = new char[activeTagUIDS.length() + 1];
-        strcpy(activeTagUIDs, activeTagUIDS.c_str());
-        //Serial.println(activeTagUIDs);
-        return activeTagUIDs;
-    } else {
-        Serial.println("Error reading Firestore document");
-        Serial.println(fbdo.errorReason());
-        return nullptr;
+        i++;
     }
-}
+
+    char* activeTagUIDs = new char[activeTagUIDS.length() + 1];
+    strcpy(activeTagUIDs, activeTagUIDS.c_str());
+    //Serial.println(activeTagUIDs);
+    return activeTagUIDs;
+} 
 
     /**
      * Get FirebaseJson object from FirebaseFirestore.
@@ -108,7 +103,7 @@ FirebaseJson firestoreGetJson(String documentPath) {
      *
      * @param jsonObject Raw json data before any change.
      * @param documentPath The document path to the Firestore, e.g. "riotCards/riot-cards"
-     * @param updateWhere Path to the update field, e.g. "fields/riotCardList/arrayValue/values/[0]/mapValue/fields/inOrOut/stringValue
+     * @param updateWhere Path to the update field, e.g. "fields/riotCardList/arrayValue/values/[0]/mapValue/fields/inOrOut/stringValue"
      * @param updateValue Update value 
      * @return nothing
      *
@@ -125,15 +120,18 @@ void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String up
                 // Extract the substring between the second last '/' and the last '/' to get the update field
                 String updateField = updateWhere.substring(firstSlash + 1, secondSlash);
                 //Serial.print("Extracted substring: ");
-                //Serial.println(extracted);
+                //Serial.println(updateField);
+               
+
 
     if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), jsonObject.raw(), updateField)){
             //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+                } else {
+                    Serial.println("Error Patching Document!");
                 }
                 }
             
-            }           
-      return;
+        }           
     }else{
       Serial.println(fbdo.errorReason());
     }
@@ -142,7 +140,7 @@ void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String up
     /**
      * Comperate the compareValue in the compareField, set iteration path if compareField is an array
      *
-     * @param documentPath The document path to the Firestore, e.g. "riotCards/riot-cards"
+     * @param jsonObject Json data to compare
      * @param compareField Field to compared to e.g. "fields/riotCardList/arrayValue/values"
      * @param compareValue Value to be compared e.g. "riotCardID"
      * @param iteration If iteration is needed remain path to compareField should be satisfied in this e.g. "mapValue/fields/riotCardID/stringValue"
@@ -151,10 +149,7 @@ void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String up
      * number of correct matches if iteration and count is set, or bool value of the comparison if iteration is unset
      *
      */
-String firestoreCompare(String documentPath, String compareField, String compareValue, String iteration = "none", bool count = false) {
-    if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), "")) {
-
-        FirebaseJson jsonObject = firestoreGetJson(documentPath);
+String firestoreCompare(FirebaseJson jsonObject, String compareField, String compareValue, String iteration = "none", bool count = false) {
         FirebaseJsonData jsonData;
         
         if (iteration != "none") {
@@ -191,9 +186,8 @@ String firestoreCompare(String documentPath, String compareField, String compare
             }
         }
     return "false";
-    }
-    return "null";
 }
+
 
     /**
      * Comperate the compareValue in the compareField, set iteration path if compareField is an array
@@ -209,4 +203,112 @@ String getDataFromJsonObject(FirebaseJson jsonObject, String fieldPath) {
     jsonObject.get(jsonData, fieldPath, true);
     
     return jsonData.stringValue;
+}
+
+    /**
+     * Upload and complete all FirebaseFirestore related tasks
+     *
+     * @param jsonObjectRiotCard RIoT card's json object
+     * @param riotCardID RIoT card id
+     * @return none
+     *
+     */
+void uploadAllFirestoreTasks(FirebaseJson jsonObjectRiotCard, String riotCardID) {
+    FirebaseJson jsonObjectLabData = firestoreGetJson("labData/lab-data");
+                String riotCardListIndex = firestoreCompare(
+                jsonObjectRiotCard,
+                "fields/riotCardList/arrayValue/values",
+                riotCardID,
+                "mapValue/fields/riotCardID/stringValue",
+                false
+                );
+
+                firestoreUpdateData(
+                jsonObjectRiotCard, 
+                "riotCards/riot-cards", 
+                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/inOrOut/stringValue",
+                "in"
+                );
+
+                String userID = getDataFromJsonObject(
+                jsonObjectRiotCard,
+                "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/id/stringValue"
+                );
+                FirebaseJson jsonObjectUser = firestoreGetJson("users/" + userID); 
+
+                firestoreUpdateData(
+                jsonObjectUser,
+                "users/" + userID,  
+                "fields/riotCard/mapValue/fields/inOrOut/stringValue",
+                "in"
+                );
+
+                FirebaseJson jsonObjectRiotCardUpdated = firestoreGetJson("riotCards/riot-cards");
+                String noPeopleInTheLab = firestoreCompare(
+                jsonObjectRiotCardUpdated,
+                "fields/riotCardList/arrayValue/values",
+                "in",
+                "mapValue/fields/inOrOut/stringValue",
+                true
+                );
+
+                firestoreUpdateData(
+                jsonObjectLabData, 
+                "labData/lab-data", 
+                "fields/labPeople/stringValue",
+                noPeopleInTheLab
+                );
+}
+
+    /**
+     * Updates card status when user account is deleted
+     *
+     * @return none
+     *
+     */
+void changeRiotCardStatus() {
+    // Allocate memory for FirebaseJson objects on the heap
+    FirebaseJson* jsonObjectUsersPtr = new FirebaseJson();
+    FirebaseJson* jsonObjectRiotCardsPtr = new FirebaseJson();
+
+    if (jsonObjectUsersPtr == nullptr || jsonObjectRiotCardsPtr == nullptr) {
+        Serial.println("Memory allocation failed");
+        // Handle the failure case accordingly
+        return;
+    }
+
+    String path = "users/";
+
+    // Populate jsonObjectUsers using Firebase
+    Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path.c_str(), 100, "", "", "", false);
+    jsonObjectUsersPtr->setJsonData(fbdo.payload().c_str());
+
+    int i = 0;
+    FirebaseJsonData jsonData;
+
+    while (jsonObjectUsersPtr->get(jsonData, "documents/[" + String(i) + "]/fields/userType/stringValue")) {
+        if (jsonData.stringValue == "deleted") {
+            String uID = getDataFromJsonObject(*jsonObjectUsersPtr, "documents/[" + String(i) + "]/fields/id/stringValue");
+            *jsonObjectRiotCardsPtr = firestoreGetJson("riotCards/riot-cards");
+            String index = firestoreCompare(*jsonObjectRiotCardsPtr,                
+                                             "fields/riotCardList/arrayValue/values",
+                                             uID,
+                                             "mapValue/fields/id/stringValue",
+                                             false);
+
+            jsonObjectRiotCardsPtr->set("fields/riotCardList/arrayValue/values/[" + String(index) + "]/mapValue/fields/riotCardStatus/stringValue","inactive");
+            jsonObjectRiotCardsPtr->set("fields/riotCardList/arrayValue/values/[" + String(index) + "]/mapValue/fields/inOrOut/stringValue","out");
+            
+            //Serial.println(jsonObjectRiotCardsPtr->toString(Serial, true));
+            
+            Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", "riotCards/riot-cards", jsonObjectRiotCardsPtr->raw(), "riotCardList");
+
+            //Serial.println("b");
+        }
+        i++;
+    }
+
+    // Clean up dynamically allocated memory
+    delete jsonObjectUsersPtr;
+    delete jsonObjectRiotCardsPtr;
 }

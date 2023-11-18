@@ -26,7 +26,7 @@ int initWiFi() {
     }
     
     Serial.println("\nConnected to the WiFi network");
-    Serial.print("Local ESP32 IP: ");
+    Serial.print("Local ESP8266 IP: ");
     Serial.println(WiFi.localIP());
     digitalWrite(NETWORK_PIN,LOW);
 

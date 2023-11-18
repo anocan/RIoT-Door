@@ -7,10 +7,12 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(0), backUpRead, RISING);
     Serial.begin(9600);
     initWiFi();
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     initFirebase();
     initRFID();
 }
 
 void loop() {
-   readRFID();
+    systemMaintenance();
+    readRFID();
 }

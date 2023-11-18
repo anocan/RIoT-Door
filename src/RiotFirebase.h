@@ -11,19 +11,14 @@ extern FirebaseConfig config;
 
 extern const u_int8_t FIREBASE_PIN;
 
-enum UpdateModes {
-    increment_by_one,
-    decrease_by_one,
-    update_inOrOutToLabData,
-};
-
-
-const char* firestoreGetCardData(String documentPath, String elementName, String elementType);
 
 int initFirebase();
+const char* getActiveRiotCardIDs(FirebaseJson jsonObject);
 FirebaseJson firestoreGetJson(String documentPath);
 void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String updateWhere, String updateValue);
-String firestoreCompare(String documentPath, String compareField, String compareValue, String iteration, bool count);
+String firestoreCompare(FirebaseJson jsonObject, String compareField, String compareValue, String iteration, bool count);
 String getDataFromJsonObject(FirebaseJson jsonObject, String fieldPath);
+void changeRiotCardStatus();
+void uploadAllFirestoreTasks(FirebaseJson jsonObjectRiotCard, String riotCardID);
 
 #endif
