@@ -312,3 +312,63 @@ void changeRiotCardStatus() {
     delete jsonObjectUsersPtr;
     delete jsonObjectRiotCardsPtr;
 }
+
+    /**
+     * Resets inOrOut status of all instances in the riotCards
+     *
+     * @return none
+     *
+     */
+void resetInOrOutStatus() {
+    String documentPath = "riotCards/riot-cards";
+    FirebaseJson jsonRiotCards = firestoreGetJson(documentPath);
+    FirebaseJson jsonObjectLabData = firestoreGetJson("labData/lab-data");
+    FirebaseJsonData jsonData;
+
+    int i = 0;
+    while (jsonRiotCards.get(jsonData,
+        "fields/riotCardList/arrayValue/values/[" + String(i) + "]/mapValue/fields/inOrOut/stringValue", 
+        true)) {
+        jsonRiotCards.set("fields/riotCardList/arrayValue/values/[" + String(i) + "]/mapValue/fields/inOrOut/stringValue", 
+        "out"
+        );
+    i++;
+    }
+    if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), jsonRiotCards.raw(), "riotCardList")){
+    //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    } else {
+        Serial.println("Error Patching Document!");
+    }
+
+    String noPeopleInTheLab = firestoreCompare(
+    jsonRiotCards,
+    "fields/riotCardList/arrayValue/values",
+    "in",
+    "mapValue/fields/inOrOut/stringValue",
+    true
+    );
+
+    firestoreUpdateData(
+    jsonObjectLabData, 
+    "labData/lab-data", 
+    "fields/labPeople/stringValue",
+    noPeopleInTheLab
+    );
+
+    int j = 0;
+    while (jsonRiotCards.get(jsonData,
+        "fields/riotCardList/arrayValue/values/[" + String(j) + "]/mapValue/fields/id/stringValue", 
+        true)) {
+        String userID = jsonData.stringValue;
+        FirebaseJson jsonObjectUser = firestoreGetJson("users/" + userID); 
+
+        firestoreUpdateData(
+        jsonObjectUser,
+        "users/" + userID,  
+        "fields/riotCard/mapValue/fields/inOrOut/stringValue",
+        "out"
+        );
+    j++;
+    }
+
+}

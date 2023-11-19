@@ -9,11 +9,11 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3*3600; // +3 UTC in seconds
 const int   daylightOffset_sec = 0;
 
-const int maintenanceLowerHour = 17;
-const int maintenanceLowerMinute = 01;
+const int maintenanceLowerHour = 15;
+const int maintenanceLowerMinute = 15;
 
-const int maintenanceUpperHour = 17;
-const int maintenanceUpperMinute = 02;
+const int maintenanceUpperHour = 15;
+const int maintenanceUpperMinute = 55;
 
 bool taskExecuted = false;
 
@@ -69,6 +69,7 @@ void systemMaintenance(){
     if (!taskExecuted) {
       Serial.println("SYSTEM MAINTENANCE!");
       changeRiotCardStatus();
+      resetInOrOutStatus();
       taskExecuted = true;
     }
   } else {
