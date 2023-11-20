@@ -372,3 +372,40 @@ void resetInOrOutStatus() {
     }
 
 }
+
+    void checkAuthorization(String tagUID) {
+                    FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
+                    String riotCardListIndex = firestoreCompare(
+                    jsonObjectRiotCard,
+                    "fields/riotCardList/arrayValue/values",
+                    tagUID,
+                    "mapValue/fields/riotCardID/stringValue",
+                    false
+                    );
+                    String userID = getDataFromJsonObject(
+                    jsonObjectRiotCard,
+                    "fields/riotCardList/arrayValue/values/[" + riotCardListIndex + "]/mapValue/fields/id/stringValue"
+                    );
+                    FirebaseJson jsonObjectUser = firestoreGetJson("users/" + userID); 
+                    String isAdmin = firestoreCompare(
+                    jsonObjectUser,
+                    "fields/userType/stringValue",
+                    "admin",
+                    "none",
+                    false
+                    );
+                    String isSuperAdmin = firestoreCompare(
+                    jsonObjectUser,
+                    "fields/userType/stringValue",
+                    "superadmin",
+                    "none",
+                    false
+                    );
+                    
+                    //Serial.println(userID + "  " + isAdmin + "  " + isSuperAdmin);
+                    if (isAdmin == "true" || isSuperAdmin == "true") {
+                        releaseDoor();
+                    } else {
+                        Serial.println("Unauthorized access.");
+                    }
+    }

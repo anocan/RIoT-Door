@@ -68,22 +68,34 @@ void readRFID() {
             Serial.println();
 
         if (SYSTEM == SYS_NORMAL) {
-            FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
+             FirebaseJson jsonObjectDoor = firestoreGetJson("labData/lab-data");
+             String dataDoor = getDataFromJsonObject(jsonObjectDoor,
+             "fields/labDoor/stringValue"
+             );
 
-            const char* serializedCardData = getActiveRiotCardIDs(jsonObjectRiotCard);
-            String riotCardID = compareTagUID(tagUID, serializedCardData);
-            if (riotCardID != "null") {
+            if (dataDoor == "locked") {
+                FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
+
+                const char* serializedCardData = getActiveRiotCardIDs(jsonObjectRiotCard);
+                String riotCardID = compareTagUID(tagUID, serializedCardData);
+                if (riotCardID != "null") {
                 releaseDoor();
                 uploadAllFirestoreTasks(jsonObjectRiotCard, riotCardID); // Takes significant time
                 //changeRiotCardStatus();
-
-
      
                 //Serial.println("FIREBASE CARD CORRECT!");
             } else {
                 Serial.println("FIREBASE CARD WRONG!");
             }
             delete[] serializedCardData;
+
+            } else if (dataDoor == "unlocked") {
+                releaseDoor();
+                Serial.println("RIoT door is already unlocked.");
+            } else if (dataDoor == "secured") {
+                checkAuthorization(tagUID); // Checks and releases door
+            }
+
 
         } else if (SYSTEM == SYS_BACKUP) {
             for (int i = 0; i < numKnownTags; i++) {

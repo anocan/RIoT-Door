@@ -20,6 +20,7 @@ String firestoreCompare(FirebaseJson jsonObject, String compareField, String com
 String getDataFromJsonObject(FirebaseJson jsonObject, String fieldPath);
 void changeRiotCardStatus();
 void resetInOrOutStatus();
+void checkAuthorization(String tagUID);
 void uploadAllFirestoreTasks(FirebaseJson jsonObjectRiotCard, String riotCardID);
 
 #endif
