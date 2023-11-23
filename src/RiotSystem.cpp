@@ -9,11 +9,11 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3*3600; // +3 UTC in seconds
 const int   daylightOffset_sec = 0;
 
-const int maintenanceLowerHour = 18;
+const int maintenanceLowerHour = 19;
 const int maintenanceLowerMinute = 20;
 
-const int maintenanceUpperHour = 18;
-const int maintenanceUpperMinute = 30;
+const int maintenanceUpperHour = 19;
+const int maintenanceUpperMinute = 20;
 
 bool taskExecuted = false;
 

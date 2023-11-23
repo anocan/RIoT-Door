@@ -14,13 +14,13 @@ extern const u_int8_t FIREBASE_PIN;
 
 int initFirebase();
 const char* getActiveRiotCardIDs(FirebaseJson jsonObject);
-FirebaseJson firestoreGetJson(String documentPath);
-void firestoreUpdateData(FirebaseJson jsonObject, String documentPath, String updateWhere, String updateValue);
-String firestoreCompare(FirebaseJson jsonObject, String compareField, String compareValue, String iteration, bool count);
-String getDataFromJsonObject(FirebaseJson jsonObject, String fieldPath);
+FirebaseJson firestoreGetJson(const char* documentPath);
+void firestoreUpdateData(FirebaseJson jsonObject, const char* documentPath, const char* updateWhere, const char* updateValue);
+const char* firestoreCompare(FirebaseJson jsonObject, const char* compareField, const char* compareValue, const char* iteration, bool count);
+String getDataFromJsonObject(FirebaseJson jsonObject, const char* fieldPath);
 void changeRiotCardStatus();
 void resetInOrOutStatus();
-void checkAuthorization(String tagUID);
-void uploadAllFirestoreTasks(FirebaseJson jsonObjectRiotCard, String riotCardID);
+void uploadAllFirestoreTasks(FirebaseJson jsonObjectRiotCard, const char* riotCardID);
+void testPtr();
 
 #endif

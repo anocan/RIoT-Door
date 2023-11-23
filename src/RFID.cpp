@@ -40,7 +40,7 @@ String compareTagUID(String tagUID,const char* data) {
             }
         }
     }
-    return "null";
+    return "false";
 };
 
 void initRFID() {
@@ -68,32 +68,50 @@ void readRFID() {
             Serial.println();
 
         if (SYSTEM == SYS_NORMAL) {
+            char riotCardPath[64];
+            strcpy(riotCardPath, "riotCards/");
+            strcat(riotCardPath, tagUID.c_str());
+             FirebaseJson jsonObjectRiotCard = firestoreGetJson(riotCardPath);
              FirebaseJson jsonObjectDoor = firestoreGetJson("labData/lab-data");
+             
+
              String dataDoor = getDataFromJsonObject(jsonObjectDoor,
              "fields/labDoor/stringValue"
              );
 
+             Serial.println(dataDoor);
             if (dataDoor == "locked") {
-                FirebaseJson jsonObjectRiotCard = firestoreGetJson("riotCards/riot-cards");
 
-                const char* serializedCardData = getActiveRiotCardIDs(jsonObjectRiotCard);
-                String riotCardID = compareTagUID(tagUID, serializedCardData);
-                if (riotCardID != "null") {
-                releaseDoor();
-                uploadAllFirestoreTasks(jsonObjectRiotCard, riotCardID); // Takes significant time
+
+                String jsonDataRiotCardID = getDataFromJsonObject(jsonObjectRiotCard, 
+                "fields/riotCardStatus/stringValue"
+                );
+                if (jsonDataRiotCardID == "active") {
+                    releaseDoor();
+                    Serial.println("aaa");
+                }
+
+                //const char* serializedCardData = getActiveRiotCardIDs(jsonObjectRiotCard);
+                //String riotCardID = compareTagUID(tagUID, serializedCardData).c_str();
+                //if (riotCardID != "false") {
+                //releaseDoor();
+                //uploadAllFirestoreTasks(jsonObjectRiotCard, riotCardID.c_str()); // Takes significant time
                 //changeRiotCardStatus();
      
                 //Serial.println("FIREBASE CARD CORRECT!");
-            } else {
-                Serial.println("FIREBASE CARD WRONG!");
-            }
-            delete[] serializedCardData;
+                //} else {
+                //    Serial.println("FIREBASE CARD WRONG!");
+                //}
 
             } else if (dataDoor == "unlocked") {
                 releaseDoor();
                 Serial.println("RIoT door is already unlocked.");
             } else if (dataDoor == "secured") {
-                checkAuthorization(tagUID); // Checks and releases door
+                String userType = getDataFromJsonObject(jsonObjectRiotCard, "fields/userType/stringValue");
+                if (userType == "admin" || userType == "superadmin") {
+                    releaseDoor();
+                    Serial.println("vvvv");
+                }
             }
 
 
