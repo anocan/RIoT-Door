@@ -31,6 +31,7 @@ extern const int maintenanceUpperMinute;
 
 void backUpRead();
 void releaseDoor();
+void doorController(String tagUID);
 void systemMaintenance();
 
 #endif

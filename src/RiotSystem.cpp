@@ -23,6 +23,18 @@ long lastTrigger = 0;
 int resetCounter = 0;
 int resetThreshold = 5;
 
+const char* knownTagUIDs[] = {
+    "ec2ff537",
+    "e3f76c19",
+    "4c60a25f"
+};
+
+const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
+const char* correspondingIDs[] = {
+    "MASTER KEY",
+    "ID1",
+    "ZGwWrS4bjrZPXa8V2ddsES2Api33"
+};
 
 void IRAM_ATTR backUpRead() {
   startTimer = true;
@@ -50,6 +62,69 @@ void releaseDoor() {
   Serial.println("Door has been unlocked!");
 }
 
+void doorController(String tagUID) {
+  if (tagUID == "null") {
+    //Serial.println("No RFID read."); // do not uncomment this -spam
+    return;
+  }
+      //Serial.println(tagUID);
+          if (SYSTEM == SYS_NORMAL) {
+            char riotCardPath[64];
+            strcpy(riotCardPath, "riotCards/");
+            strcat(riotCardPath, tagUID.c_str());
+             FirebaseJson jsonObjectRiotCard = firestoreGetJson(riotCardPath);
+             FirebaseJson jsonObjectDoor = firestoreGetJson("labData/lab-data");
+             
+
+             String dataDoor = getDataFromJsonObject(jsonObjectDoor,
+             "fields/labDoor/stringValue"
+             );
+
+             //Serial.println(dataDoor);
+            if (dataDoor == "locked") {
+
+
+                String jsonDataRiotCardStatus = getDataFromJsonObject(jsonObjectRiotCard, 
+                "fields/riotCardStatus/stringValue");
+                //Serial.println(jsonDataRiotCardStatus);
+                
+                if (jsonDataRiotCardStatus == "active") {
+                  uploadAllFirestoreTasks(jsonObjectRiotCard, tagUID.c_str());
+                  //resetInOrOutStatus();
+                  releaseDoor();
+                    
+                } else if (jsonDataRiotCardStatus == "inactive") {
+                  Serial.println("Card is inactive."); // DEBUG
+                } else if (jsonDataRiotCardStatus == "disabled") {
+                  Serial.println("Card is disabled by the admin."); // DEBUG
+                }
+
+            } else if (dataDoor == "unlocked") {
+                releaseDoor();
+                Serial.println("RIoT door is already unlocked.");
+            } else if (dataDoor == "secured") {
+                String userType = getDataFromJsonObject(jsonObjectRiotCard, "fields/userType/stringValue");
+                if (userType == "admin" || userType == "superadmin") {
+                    releaseDoor();
+                    Serial.println("vvvv");
+                }
+            }
+
+
+        } else if (SYSTEM == SYS_BACKUP) {
+            for (int i = 0; i < numKnownTags; i++) {
+                if (tagUID == knownTagUIDs[i]) {
+                    // Match found
+
+                    /// UNLOCK THE DOOR
+                   Serial.println("CARD READ VIA BACKUP");
+                    break; // Exit the loop when a match is found
+                }
+            }
+    
+        }
+}
+
 void systemMaintenance(){
   time_t now;
   time(&now);
@@ -68,7 +143,7 @@ void systemMaintenance(){
   if (timeinfo.tm_hour == maintenanceLowerHour && timeinfo.tm_min >= maintenanceLowerMinute && timeinfo.tm_hour == maintenanceUpperHour && timeinfo.tm_min <= maintenanceUpperMinute) {
     if (!taskExecuted) {
       Serial.println("SYSTEM MAINTENANCE!");
-      changeRiotCardStatus();
+      //changeRiotCardStatus();
       resetInOrOutStatus();
       taskExecuted = true;
     }

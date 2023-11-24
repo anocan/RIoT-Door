@@ -13,5 +13,6 @@ extern const uint8_t SS_PIN;
 extern const u_int8_t READY_PIN;
 
 void initRFID();
-void readRFID();
+String readRFID();
+
 #endif
