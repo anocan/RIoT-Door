@@ -6,6 +6,8 @@ FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
+FirebaseData* dfbdo = new FirebaseData();
+
     /**
      * Initialize the Firebase
      *
@@ -257,13 +259,13 @@ void compareAndReturn(const char* value1, const char* value2, int* count) {
 }
 
 void setAllInOrOutToOut(const char* riotCardID, const char* updateValue, int* count) {
-    char documentPath[64];
+    char* documentPath = (char*)malloc(64 * sizeof(char));
     sprintf(documentPath, "riotCards/%s", riotCardID);
-
     //jsonRiotCards.set("fields/inOrOut/stringValue", updateValue);
     Serial.println(firestoreGetJson(documentPath).toString(Serial, true));
     Serial.println(ESP.getFreeHeap());
     Serial.println(ESP.getFreeContStack());
+
     /*
     firestoreUpdateField(
         firestoreGetJson(documentPath),
@@ -306,7 +308,7 @@ String firebaseJsonIterator(FirebaseJson jsonObject, String pathToArray, const c
         return "NULL";
     }
 }
-    
+
 String getNoOfPeople() {
     int count = 0;
     int pageSize = 5;
@@ -458,6 +460,25 @@ void changeRiotCardStatus() {
     delete jsonObjectRiotCardsPtr;
 }
 
+/*
+bool firestoreGetJsonD(FirebaseJson* jsonObject, const char* documentPath) {
+    if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
+        if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath, "")) {
+            if (jsonObject == nullptr) {
+                *jsonObject = (FirebaseJson*)malloc(sizeof(FirebaseJson)); // Allocate on heap only if it's null
+            } else {
+                (jsonObject)->clear(); // Clear the existing data from the object
+            }
+            jsonObject->setJsonData(fbdo.payload().c_str());
+            return true; // Return true to indicate success
+        }
+    }
+    return false; // Return false if something goes wrong or not connected
+}*/
+
+
+
+
     /**
      * Resets inOrOut status of all instances in the riotCards
      *
@@ -465,28 +486,129 @@ void changeRiotCardStatus() {
      *
      */
 void resetInOrOutStatus() {
-    int pageSize = 5;
+    int pageSize = 1;
+    bool firstPage = true;
     FirebaseJson riotCardsList;
     FirebaseJsonData nextPageToken;
+    FirebaseJsonData riotCardID;
+    FirebaseJson cardObject;
     const char* path = "riotCards/";
-
-    Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path, pageSize, "", "", "riotCardID", false);
-    riotCardsList.setJsonData(fbdo.payload().c_str());
 
     while(riotCardsList.get(nextPageToken,
     "nextPageToken"
-    )) {
+    ) || firstPage) {
+        if (!firstPage) {
+        Serial.println(ESP.getFreeContStack());
         //Serial.println(nextPageToken.stringValue);
         Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path, pageSize, nextPageToken.stringValue, "", "riotCardID", false);
         riotCardsList.setJsonData(fbdo.payload().c_str());
-        
-        firebaseJsonIterator(riotCardsList,
+
+        riotCardsList.get(riotCardID, "documents/[0]/fields/riotCardID/stringValue");
+        char buffer[64];
+        sprintf(buffer, "riotCards/%s", riotCardID.stringValue.c_str());
+        //Serial.println(buffer);
+        if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", buffer, "")) {
+            cardObject.setJsonData(fbdo.payload().c_str());
+            cardObject.set("fields/inOrOut/stringValue", "out");
+            Firebase.Firestore.patchDocument(&fbdo,
+            FIREBASE_PROJECT_ID,
+            "",
+            buffer,
+            cardObject.raw(),
+            "inOrOut"
+            );
+            
+            //Serial.println(cardObject->toString(Serial, true));
+        } else {
+            Serial.println(fbdo.payload());
+        }
+        //Serial.println(document.toString(Serial, true));
+
+    
+/*
+        const char* paths = firebaseJsonIteratorDynamic(riotCardsList,
         "documents/",
         "riotCardID",
         "out",
         &setAllInOrOutToOut
         );
+        
+        riotCardsList =  firestoreGetJson(paths);
+
+        free((void*) paths);
+        Serial.println(riotCardsList.toString(Serial, true));
+        
+        Serial.println(ESP.getFreeContStack());
+        riotCardsList.clear();
+        fbdo.clear();
+*/
+        /*
+            if (dynamicJson == nullptr) {
+                dynamicJson = (FirebaseJson*)malloc(sizeof(FirebaseJson)); // Allocate on heap only if it's null
+            } else {
+                dynamicJson->clear(); // Clear the existing data from the object
+            }
+            dynamicJson->setJsonData(fbdo.payload().c_str());
+            Serial.println(dynamicJson->toString(Serial, true));
+            free(dynamicJson);
+            dynamicJson = nullptr;
+        */
+
+
+/*
+        if ( firestoreGetJsonD(dynamicJson, paths)) {
+            Serial.println(dynamicJson->toString(Serial, true));
+            free(dynamicJson);
+            dynamicJson = nullptr; 
+        }
+        */
+        //Serial.println(dynamicJson.toString(Serial, true));
+        /*
+        firestoreUpdateField( dynamicJson,
+        paths,
+        "fields/inOrOut/stringValue",
+        "out"
+        );*/
+
+    /*
+        if (paths != nullptr) {
+            free((void*)paths); // Cast to void* before passing to free()
+        }*/
+        //Serial.println(firestoreGetJson(paths.c_str()).toString(Serial, true));
+       
+        } else {
+        //Serial.println(nextPageToken.stringValue);
+        Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path, pageSize, "", "", "riotCardID", false);
+        riotCardsList.setJsonData(fbdo.payload().c_str());
+
+        Serial.println(riotCardsList.toString(Serial, true));
+        Serial.println(ESP.getFreeContStack());
+
+        firstPage = false;
+        }
+
+
     }
+
+        
+
+
+/*
+            char documentPath[64];
+    sprintf(documentPath, "riotCards/%s", riotCardID);
+
+    //jsonRiotCards.set("fields/inOrOut/stringValue", updateValue);
+    Serial.println(firestoreGetJson(documentPath).toString(Serial, true));
+    Serial.println(ESP.getFreeHeap());
+    Serial.println(ESP.getFreeContStack());
+    
+    firestoreUpdateField(
+        firestoreGetJson(documentPath),
+        documentPath,
+        "fields/inOrOut/stringValue",
+        updateValue
+    );*/
+
     /*
     if(Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath, jsonRiotCards.raw(), "riotCardList")){
     //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());

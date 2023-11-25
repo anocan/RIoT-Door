@@ -9,11 +9,11 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3*3600; // +3 UTC in seconds
 const int   daylightOffset_sec = 0;
 
-const int maintenanceLowerHour = 19;
-const int maintenanceLowerMinute = 20;
+const int maintenanceLowerHour = 20;
+const int maintenanceLowerMinute = 00;
 
-const int maintenanceUpperHour = 19;
-const int maintenanceUpperMinute = 20;
+const int maintenanceUpperHour = 20;
+const int maintenanceUpperMinute = 59;
 
 bool taskExecuted = false;
 
@@ -89,7 +89,7 @@ void doorController(String tagUID) {
                 //Serial.println(jsonDataRiotCardStatus);
                 
                 if (jsonDataRiotCardStatus == "active") {
-                  uploadAllFirestoreTasks(jsonObjectRiotCard, tagUID.c_str());
+                  //uploadAllFirestoreTasks(jsonObjectRiotCard, tagUID.c_str());
                   //resetInOrOutStatus();
                   releaseDoor();
                     
